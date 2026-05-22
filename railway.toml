@@ -1,8 +1,20 @@
 [build]
 builder = "NIXPACKS"
 
+[build.nixpacks]
+phases = [
+  "apt-get update",
+  "apt-get install -y nodejs npm python3 python3-pip ffmpeg",
+  "pip3 install yt-dlp"
+]
+
 [deploy]
 preDeployCommand = "npx prisma migrate deploy"
 buildCommand = "npm install --include=dev && npx prisma generate && npm run build"
 startCommand = "node dist/index.js"
 restartPolicyType = "ON_FAILURE"
+
+[env]
+DATABASE_URL = "${{Postgres.DATABASE_URL}}"
+PORT = "3000"
+NODE_ENV = "production"
