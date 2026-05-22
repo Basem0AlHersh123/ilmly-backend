@@ -1,0 +1,187 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+}
+
+model Video {
+  id            String       @id @default(cuid())
+  youtubeId     String       @unique
+  title         String
+  channelId     String       @default("")
+  channelName   String
+  duration      Int          @default(0)
+  thumbnailUrl  String       @default("")
+  description   String       @default("")
+  viewCount     Int          @default(0)
+  uploadDate    DateTime     @default(now())
+  quality       String       @default("720p")
+  fileSize      Int          @default(0)
+  filePath      String       @default("")
+  hasSubtitles  Boolean      @default(false)
+  downloadedAt  DateTime     @default(now())
+  lastWatched   DateTime?
+  isFavorite    Boolean      @default(false)
+  tags          Tag[]
+  folders       FolderVideo[]
+  notes         Note[]
+  bookmarks     Bookmark[]
+  vocabulary    Vocabulary[]
+}
+
+model Playlist {
+  id          String          @id @default(cuid())
+  youtubeId   String          @unique
+  title       String
+  channelId   String
+  channelName String
+  videoCount  Int             @default(0)
+  description String          @default("")
+  thumbnailUrl String         @default("")
+  videos      PlaylistVideo[]
+  createdAt   DateTime        @default(now())
+}
+
+model PlaylistVideo {
+  id         String   @id @default(cuid())
+  playlistId String
+  videoId    String   @default("")
+  youtubeVideoId String
+  title      String   @default("")
+  channelName String @default("")
+  duration   Int      @default(0)
+  thumbnailUrl String @default("")
+  position   Int
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+}
+
+model Channel {
+  id              String   @id @default(cuid())
+  youtubeId       String   @unique
+  title           String
+  thumbnailUrl    String   @default("")
+  bannerUrl       String   @default("")
+  subscriberCount Int      @default(0)
+  videoCount      Int      @default(0)
+  description     String   @default("")
+  bookmarked      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+}
+
+model Download {
+  id          String    @id @default(cuid())
+  youtubeId   String
+  title       String
+  url         String    @default("")
+  quality     String
+  status      String    @default("queued")
+  progress    Int       @default(0)
+  fileSize    Int       @default(0)
+  downloaded  Int       @default(0)
+  speed       Int       @default(0)
+  retries     Int       @default(0)
+  usedCookies Boolean   @default(false)
+  startedAt   DateTime  @default(now())
+  finishedAt  DateTime?
+  error       String    @default("")
+}
+
+model Folder {
+  id          String        @id @default(cuid())
+  name        String
+  description String        @default("")
+  createdAt   DateTime      @default(now())
+  videos      FolderVideo[]
+}
+
+model FolderVideo {
+  id        String @id @default(cuid())
+  folderId  String
+  videoId   String
+  folder    Folder @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  video     Video  @relation(fields: [videoId], references: [id], onDelete: Cascade)
+}
+
+model Tag {
+  id      String @id @default(cuid())
+  name    String
+  videoId String
+  video   Video  @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([name, videoId])
+}
+
+model APICache {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  response  String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Settings {
+  id                     String  @id @default(cuid())
+  youtubeApiKey          String  @default("")
+  quotaUsed              Int     @default(0)
+  quotaResetDate         String  @default("")
+  maxConcurrentDownloads Int     @default(2)
+  wifiOnlyDownloads      Boolean @default(false)
+  nightDownloadMode      Boolean @default(false)
+  downloadLocation       String  @default("")
+  defaultQuality         String  @default("720p")
+  pauseOnLowBattery      Boolean @default(true)
+  batteryThreshold       Int     @default(20)
+  cookieSupport          Boolean @default(false)
+  cookieMethod           String  @default("manual")
+  onboardingComplete     Boolean @default(false)
+  theme                  String  @default("dark")
+  defaultPlaybackSpeed   Float   @default(1.0)
+  autoPlayNext           Boolean @default(false)
+  resumeFromLastPosition Boolean @default(true)
+  showHomeFeed           Boolean @default(true)
+}
+
+model SearchHistory {
+  id        String   @id @default(cuid())
+  query     String
+  createdAt DateTime @default(now())
+}
+
+model Note {
+  id              String   @id @default(cuid())
+  videoId         String
+  video           Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  timestampSeconds Int
+  text            String
+  createdAt       DateTime @default(now())
+}
+
+model Bookmark {
+  id              String   @id @default(cuid())
+  videoId         String
+  video           Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  timestampSeconds Int
+  label           String
+  createdAt       DateTime @default(now())
+}
+
+model Vocabulary {
+  id          String   @id @default(cuid())
+  videoId     String
+  video       Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  word        String
+  definition  String
+  timestamp   Int
+  createdAt   DateTime @default(now())
+}
