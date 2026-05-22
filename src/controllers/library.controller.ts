@@ -283,21 +283,28 @@ export async function toggleFavorite(req: Request, res: Response) {
 
 export async function streamPreview(req: Request, res: Response) {
   try {
-    const { youtubeId } = req.params;
-    const { quality = '720p' } = req.query;
+    const youtubeId = req.params.youtubeId as string;
+    const qualityParam = typeof req.query.quality === 'string' ? req.query.quality : '720p';
 
     const url = `https://youtube.com/watch?v=${youtubeId}`;
 
+    // Check cache first
+    const cached = await getCachedStreamUrl(youtubeId, qualityParam);
+    if (cached) {
+      return res.json({ success: true, data: { url: cached, title: 'Video', youtubeId, quality: qualityParam } });
+    }
+
     // Try requested quality, fall back through lower qualities if unavailable
-    const qualityFallbacks = (quality as string) === 'audio'
+    const qualityFallbacks = qualityParam === 'audio'
       ? ['audio']
-      : [quality as string, ...['1080p', '720p', '480p', '360p'].filter(q => q !== quality)];
+      : [qualityParam, ...['1080p', '720p', '480p', '360p'].filter(q => q !== qualityParam)];
 
     let lastError: any;
     for (const q of qualityFallbacks) {
       try {
         const result = await getStreamUrl(url, q);
         if (result.url) {
+          setCachedStreamUrl(youtubeId, q, result.url);
           return res.json({ success: true, data: { ...result, youtubeId, quality: q } });
         }
       } catch (err: any) {

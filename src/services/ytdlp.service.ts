@@ -15,6 +15,8 @@ export interface VideoInfo {
   formats: { quality: string; formatId: string; filesize: number }[];
 }
 
+const YTDLP_TIMEOUT = 50000; // 50 seconds max for yt-dlp (Render free tier: 60s)
+
 function runYtDlp(args: string[]): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
     const child = spawn('yt-dlp', args, {
@@ -23,6 +25,11 @@ function runYtDlp(args: string[]): Promise<{ stdout: string; stderr: string }> {
 
     let stdout = '';
     let stderr = '';
+
+    const timeout = setTimeout(() => {
+      child.kill('SIGTERM');
+      reject(new Error('yt-dlp timed out after 50 seconds. YouTube may be slow or blocking requests.'));
+    }, YTDLP_TIMEOUT);
 
     child.stdout?.on('data', (data) => {
       stdout += data.toString();
@@ -33,6 +40,7 @@ function runYtDlp(args: string[]): Promise<{ stdout: string; stderr: string }> {
     });
 
     child.on('close', (code) => {
+      clearTimeout(timeout);
       if (code === 0) {
         resolve({ stdout, stderr });
       } else {
@@ -41,6 +49,7 @@ function runYtDlp(args: string[]): Promise<{ stdout: string; stderr: string }> {
     });
 
     child.on('error', (err) => {
+      clearTimeout(timeout);
       reject(err);
     });
   });
